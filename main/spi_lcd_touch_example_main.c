@@ -107,13 +107,13 @@ void app_main(void)
     };
 
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = LCD_PIXEL_CLOCK_HZ, // 20 MHz，ST7735 可接受较高速率
-        .mode = 0,                            // SPI Mode 0（CPOL=0, CPHA=0）
-        .spics_io_num = PIN_NUM_LCD_CS,       // ST7735 的 CS 引脚
-        .queue_size = 7,                      // 可排队 7 个传输
-        .flags = SPI_DEVICE_NO_DUMMY,         // 不使用 dummy bits
-        .pre_cb = NULL,                       // 可选传输前回调（设置 DC 等）
-        .post_cb = NULL,                      // 可选传输后回调
+        .clock_speed_hz = LCD_PIXEL_CLOCK_HZ,
+        .mode = 0,
+        .spics_io_num = PIN_NUM_LCD_CS,
+        .queue_size = 7,
+        .flags = SPI_DEVICE_NO_DUMMY,
+        .pre_cb = NULL,
+        .post_cb = NULL,
     };
 
     st7735_handle_t *st7735_dev = malloc(sizeof(st7735_handle_t));
