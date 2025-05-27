@@ -1,0 +1,30 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.4",
+  "idf.toolsPathWin": "e:\\idf_tools",
+  "idf.pythonInstallPath": "e:\\idf_tools\\tools\\idf-python\\3.11.2\\python.exe",
+  "files.associations": {
+    "*.inc": "c",
+    "chrono": "c",
+    "format": "c",
+    "variant": "c",
+    "mutex": "c",
+    "esp_lcd_touch_stmpe610.h": "c",
+    "spi_master.h": "c",
+    "freertos.h": "c",
+    "lv_log.h": "c",
+    "esp_lcd_st7735.h": "c",
+    "lv_draw_sw_helium.h": "c",
+    "esp_check.h": "c",
+    "param.h": "c"
+  },
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32"
+  },
+  "idf.portWin": "COM3",
+  "idf.openOcdConfigs": [
+    "interface/ftdi/esp32_devkitj_v1.cfg",
+    "target/esp32.cfg"
+  ],
+  "idf.flashType": "JTAG"
+}
