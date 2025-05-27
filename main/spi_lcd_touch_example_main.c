@@ -9,14 +9,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
-#include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "lvgl.h"
 #include "misc/lv_log.h"
 #include "esp_lcd_st7735.h"
-#include "esp_heap_trace.h"
 
 static const char *TAG = "SPI LCD";
 
@@ -72,11 +70,6 @@ static void lvgl_rtos_task(void *pvParameters)
     }
 }
 
-void lv_log_print(lv_log_level_t level, const char *buf)
-{
-    esp_rom_printf("%s", buf);
-}
-
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     ESP_LOGI(__func__, "Stack overflow detected in task: %s\n", pcTaskName);
@@ -84,12 +77,9 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
         ;
 }
 
-uint32_t ticks = 0;
-
-void lvgl_tick_handler()
+void lvgl_tick_callback()
 {
     lv_tick_inc(LVGL_TICK_PERIOD_MS);
-    ticks++;
 }
 
 void app_main(void)
@@ -155,8 +145,9 @@ void app_main(void)
     start_async_data_recv(st7735_dev, async_msg_queue, st7735_display);
 
     const esp_timer_create_args_t lvgl_tick_timer_args = {
-        .callback = lvgl_tick_handler,
-        .name = "lvgl_tick"};
+        .callback = lvgl_tick_callback,
+        .name = "lvgl_tick"
+    };
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_esp_timer_handle));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_esp_timer_handle, LVGL_TICK_PERIOD_MS * 1000));
 

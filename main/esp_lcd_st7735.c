@@ -183,6 +183,7 @@ esp_err_t st7735_send_data_async(st7735_handle_t *dev, const uint8_t *data, size
     while (sent < data_length)
     {
         spi_transaction_t* t = heap_caps_calloc(1, sizeof(spi_transaction_t), MALLOC_CAP_DMA); //dma aligned heap mem
+        assert(t);
         if (data_length - sent <= max_io_bytes)
         {
             t->length = (data_length - sent) * 8;
