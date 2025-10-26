@@ -13,6 +13,25 @@
 #include "lvgl.h"
 #include "esp_lcd_7735_config.h"
 
+// Using SPI2 in the example
+#define LCD_HOST SPI2_HOST
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////// Please update the following configuration according to your LCD spec //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define LCD_PIXEL_CLOCK_HZ (20 * 1000 * 1000)
+#define LCD_BK_LIGHT_ON_LEVEL 1
+#define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
+#define PIN_NUM_SCLK 12
+#define PIN_NUM_MOSI 11
+#define PIN_NUM_MISO 13
+#define PIN_NUM_LCD_DC 15
+#define PIN_NUM_LCD_RST 16
+#define PIN_NUM_LCD_CS 17
+#define PIN_NUM_BK_LIGHT 2
+
+#define LCD_H 128
+#define LCD_W 160
 
 esp_err_t st7735_init(spi_host_device_t hostid, spi_bus_config_t *spibuscfg, spi_device_interface_config_t *spidevcfg, st7735_handle_t *lcddev)
 {
@@ -182,7 +201,7 @@ esp_err_t st7735_send_data_async(st7735_handle_t *dev, const uint8_t *data, size
     size_t sent = 0;
     while (sent < data_length)
     {
-        spi_transaction_t* t = heap_caps_calloc(1, sizeof(spi_transaction_t), MALLOC_CAP_DMA); //dma aligned heap mem
+        spi_transaction_t *t = heap_caps_calloc(1, sizeof(spi_transaction_t), MALLOC_CAP_DMA); // dma aligned heap mem
         assert(t);
         if (data_length - sent <= max_io_bytes)
         {
@@ -215,9 +234,9 @@ esp_err_t st7735_send_data_async(st7735_handle_t *dev, const uint8_t *data, size
 /*
 Transmission result task for async spi
 */
-void st7735_recv_data_async(void* pvParameters) // this is going to be a rtos task
+void st7735_recv_data_async(void *pvParameters) // this is going to be a rtos task
 {
-    async_recv_params *params=(async_recv_params*)pvParameters;
+    async_recv_params *params = (async_recv_params *)pvParameters;
     while (1)
     {
         async_spi_queue_msg_t msg;
@@ -237,7 +256,7 @@ void st7735_recv_data_async(void* pvParameters) // this is going to be a rtos ta
     }
 }
 
-//call once only
+// call once only
 BaseType_t start_async_data_recv(st7735_handle_t *dev, QueueHandle_t spi_data_queue, lv_display_t *disp)
 {
     async_recv_params *params = malloc(sizeof(async_recv_params));
@@ -245,7 +264,7 @@ BaseType_t start_async_data_recv(st7735_handle_t *dev, QueueHandle_t spi_data_qu
     params->st7735_dev = dev;
     params->lvgl_disp = disp;
     params->spi_data_queue = spi_data_queue;
-    return xTaskCreate(st7735_recv_data_async,"async_spi_dat_recv",4096,params,5,NULL);
+    return xTaskCreate(st7735_recv_data_async, "async_spi_dat_recv", 4096, params, 5, NULL);
 }
 
 /*
@@ -293,7 +312,7 @@ esp_err_t st7735_fill_screen(st7735_handle_t *dev, st7735_color_t color, uint8_t
     uint16_t h = dev->height - 1;
     st7735_set_window(dev, 0, 0, w, h);
     size_t total_pixels = dev->width * dev->height;
-    size_t buffer_pixels = dev->width;      //send 1 line each time
+    size_t buffer_pixels = dev->width; // send 1 line each time
     size_t buffer_size = buffer_pixels * 2;
 
     assert(line_buf);
@@ -312,7 +331,7 @@ esp_err_t st7735_fill_screen(st7735_handle_t *dev, st7735_color_t color, uint8_t
     return ESP_OK;
 }
 
-//unused since the display have no backlight control
+// unused since the display have no backlight control
 esp_err_t st7735_set_backlight(st7735_handle_t *dev, bool on);
 
 void st7735_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p)
@@ -327,12 +346,50 @@ void st7735_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p
     uint32_t w = x2 - x1 + 1;
     uint32_t h = y2 - y1 + 1;
 
-    lv_draw_sw_rgb565_swap(color_p, w * h); //swap takes pixels, not bytes
+    lv_draw_sw_rgb565_swap(color_p, w * h); // swap takes pixels, not bytes
     st7735_set_window(lcddev, x1, y1, x2, y2);
-    #ifdef SPI_TRANSFER_ASYNC
-        st7735_send_data_async(lcddev, color_p, w * h * 2);
-    #else
-        ESP_ERROR_CHECK(st7735_send_data(lcddev, color_p, w * h * 2));
-        lv_display_flush_ready(disp);
-    #endif
+#ifdef SPI_TRANSFER_ASYNC
+    st7735_send_data_async(lcddev, color_p, w * h * 2);
+#else
+    ESP_ERROR_CHECK(st7735_send_data(lcddev, color_p, w * h * 2));
+    lv_display_flush_ready(disp);
+#endif
+}
+
+st7735_handle_t* st7735_display_init()
+{
+    spi_bus_config_t buscfg = {
+        .sclk_io_num = PIN_NUM_SCLK,
+        .mosi_io_num = PIN_NUM_MOSI,
+        .miso_io_num = PIN_NUM_MISO,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = LCD_H * 80 * sizeof(uint16_t),
+    };
+
+    spi_device_interface_config_t devcfg = {
+        .clock_speed_hz = LCD_PIXEL_CLOCK_HZ,
+        .mode = 0,
+        .spics_io_num = PIN_NUM_LCD_CS,
+        .queue_size = 7,
+        .flags = SPI_DEVICE_NO_DUMMY,
+        .pre_cb = NULL,
+        .post_cb = NULL,
+    };
+
+    st7735_handle_t *st7735_dev = malloc(sizeof(st7735_handle_t));
+    st7735_dev->width = LCD_W;
+    st7735_dev->height = LCD_H;
+    st7735_dev->max_io_bytes = 0;
+    st7735_dev->pin_bl = PIN_NUM_BK_LIGHT;
+    st7735_dev->pin_dc = PIN_NUM_LCD_DC;
+    st7735_dev->pin_rst = PIN_NUM_LCD_RST;
+    st7735_dev->spi_host_device = LCD_HOST;
+    st7735_dev->msgQueue = NULL;
+
+    if(st7735_init(LCD_HOST, &buscfg, &devcfg, st7735_dev)!=ESP_OK || st7735_reset(st7735_dev)!=ESP_OK)
+    {
+        return 0;
+    }
+    return st7735_dev;
 }

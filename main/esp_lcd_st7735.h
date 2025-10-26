@@ -67,3 +67,5 @@ esp_err_t st7735_fill_screen(st7735_handle_t *dev, st7735_color_t color, uint8_t
 esp_err_t st7735_set_backlight(st7735_handle_t *dev, bool on);
 
 void st7735_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p);
+
+st7735_handle_t* st7735_display_init();
